@@ -15,15 +15,13 @@ let marker cs =
 let rec decode cs =
   match marker cs with
   | Some (l, n, tail) ->
-      let data = decode (take tail l) in
-      let expanded = range 0 n >>| (fun _ -> data) |> concat in
-      append expanded (decode @@ drop tail l)
+      let dl = decode (take tail l) in
+      dl*n + (drop tail l |> decode)
   | None ->
       match cs with
-      | c :: cs' -> c :: decode cs'
-      | [] -> []
+      | c :: cs' -> 1 + decode cs'
+      | [] -> 0
 
-let go ls = ls >>| String.to_list >>| decode >>| String.of_char_list
-  >>| (fun s -> printf "%d\n" (String.length s)) |> ignore
+let go ls = ls >>| String.to_list >>| decode >>| printf "%d\n" |> ignore
 
-let () = In_channel.read_lines "simple.txt" |> go
+let () = In_channel.read_lines "input.txt" |> go
