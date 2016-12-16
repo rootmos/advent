@@ -16,8 +16,8 @@ let first_ok xs =
     | _ -> None in
   filter_map ~f:is_ok xs |> hd
 
-let xdim = 7
-let ydim = 3
+let xdim = 50
+let ydim = 6
 
 let apply_cmd m = function
   | RotX (x, i) ->
@@ -67,4 +67,4 @@ let go ls =
   let lit = Array.(map cells' ~f:(fun row -> map row ~f:Bool.to_int |> reduce_exn ~f:(+)) |> reduce_exn ~f:(+)) in
   printf "lit cells: %d\n" lit
 
-let () = In_channel.read_lines "simple.txt" |> go
+let () = In_channel.read_lines "input.txt" |> go
