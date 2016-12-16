@@ -16,6 +16,23 @@ let first_ok xs =
     | _ -> None in
   filter_map ~f:is_ok xs |> hd
 
+let xdim = 7
+let ydim = 3
+
+let apply_cmd m = function
+  | RotX (x, i) ->
+      Array.mapi m ~f:(fun y' row -> Array.mapi row ~f:(fun x' v ->
+        if x = x' then m.((y'-i) % ydim).(x')
+        else v))
+  | RotY (y, i) ->
+      Array.mapi m ~f:(fun y' row ->
+        if y = y' then Array.mapi row ~f:(fun x' v -> m.(y).((x' - i) % xdim))
+        else row)
+  | Rect (x, y) -> Array.mapi m ~f:(fun y' row -> Array.mapi row ~f:(fun x' v ->
+      if (x' < x) && (y' < y) then true else v))
+
+let print_matrix m = Array.iter ~f:(fun row -> Array.iter ~f:(fun cell -> printf @@ if cell then "#" else ".") row; printf "\n") m
+
 let parse_cmd l =
   let rotx_pattern = Regex.create_exn "rotate column x=(\\d+) by (\\d+)" in
   let rotx = Or_error.((Regex.find_submatches rotx_pattern l)
@@ -37,6 +54,17 @@ let parse_cmd l =
 
   Option.value_exn (first_ok [rotx; roty; rect])
 
-let go ls = ls >>| parse_cmd >>| show_cmd >>| printf "%s\n" |> ignore
+let go ls =
+  let cmds = ls >>| parse_cmd in
+  let cells = Array.make_matrix ~dimx:ydim ~dimy:xdim false in
+  let cells' = fold ~init:cells ~f:(fun m c ->
+    let m' = apply_cmd m c in
+    print_matrix m';
+    printf "\n";
+    m') cmds in
+  printf "\n------\n\n";
+  print_matrix cells';
+  let lit = Array.(map cells' ~f:(fun row -> map row ~f:Bool.to_int |> reduce_exn ~f:(+)) |> reduce_exn ~f:(+)) in
+  printf "lit cells: %d\n" lit
 
 let () = In_channel.read_lines "simple.txt" |> go
