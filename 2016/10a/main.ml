@@ -3,9 +3,6 @@ open List
 open Printf
 open Re2
 
-(*let value_to_bot = Int.Table.create ()*)
-(*let bots = Int.Table.create ()*)
-
 type gives_to = ToBot of int | ToOutput of int
 
 let show_gives_to = function
@@ -28,7 +25,6 @@ let first_ok xs =
     | _ -> None in
   filter_map ~f:is_ok xs |> hd
 
-
 let parse_cmd l =
   let assign_input_pattern = Regex.create_exn "value (\\d+) goes to bot (\\d+)" in
   let assign_input = Or_error.((Regex.find_submatches assign_input_pattern l)
@@ -50,8 +46,73 @@ let parse_cmd l =
 
   Option.value_exn (first_ok [assign_input; assign_bot])
 
+type bot_state = BotState of bot * int option * int option
+
+let show_mi = function
+  | Some i -> sprintf "Some %d" i
+  | None -> "None"
+
+let show_bot_state (BotState (b, ml, mh)) =
+  sprintf "state bot:(%s) low:(%s) high:(%s)" (show_bot b) (show_mi ml) (show_mi mh)
+
+let bot_id (Bot (i, _, _)) = i
+let bot_state_id (BotState (b, _, _)) = bot_id b
+
+let initial_state cmds =
+  let rec inner acc = function
+    | AssignInput _ :: tail -> inner acc tail
+    | AssignBot b :: tail ->
+        let acc' = Int.Map.add ~key:(bot_id b) ~data:(BotState (b, None, None)) acc in
+        inner acc' tail
+    | [] -> acc in
+  inner Int.Map.empty cmds
+
+let show_state state =
+  printf "State:\n";
+  Int.Map.iteri state ~f:(fun ~key ~data -> printf "%s\n" @@ show_bot_state data)
+
+let give_bot_state v = function
+  | BotState (b, Some v', None) when v < v' -> BotState (b, Some v, Some v')
+  | BotState (b, Some v', None) when v' < v -> BotState (b, Some v', Some v)
+  | BotState (b, None, None) -> BotState (b, Some v, None)
+  | s -> failwith (sprintf "can't give value %d to bot_state:(%s)" v (show_bot_state s))
+
+let apply_cmd state cmd =
+  match cmd with
+  | AssignInput (v, b_id) ->
+      Int.Map.change state b_id ~f:(fun mbs -> Option.value_exn mbs |> give_bot_state v |> Option.some)
+  | _ -> state
+
+let rec handle_transfer (state, outputs) = function
+  | BotState (Bot (_, low, high), Some v, Some v') ->
+      let give (st, os) w = function
+        | ToOutput o -> st, Int.Map.add os ~key:o ~data:w
+        | ToBot b_id ->
+            match Int.Map.find st b_id with
+            | None -> failwith (sprintf "no bot with id %d" b_id)
+            | Some bs ->
+                let bs' = give_bot_state w bs in
+                let st' = Int.Map.add st ~key:b_id ~data:bs' in
+                handle_transfer (st', os) bs' in
+      let st', os' = give (state, outputs) v low in
+      let st'', os'' = give (st', os') v' high in
+      st'', os''
+  | _ -> state, outputs
+
 let go ls =
   let cmds = ls >>| parse_cmd in
-  cmds >>| (fun c -> printf "%s\n" (show_cmd c)) |> ignore
+  cmds >>| (fun c -> printf "%s\n" (show_cmd c)) |> ignore;
 
-let () = In_channel.read_lines "simple.txt" |> go
+  let state = initial_state cmds in
+  show_state state;
+
+  let state' = fold cmds ~init:state ~f:(fun st cmd ->
+    let st' = apply_cmd st cmd in
+    show_state st'; st'
+  ) in
+
+  let state'', outputs = Int.Map.fold state' ~init:(state', Int.Map.empty) ~f:(fun ~key ~data acc -> handle_transfer acc data) in
+  show_state state'';
+  Int.Map.iteri outputs ~f:(fun ~key ~data -> printf "output %d has value %d\n" key data)
+
+let () = In_channel.read_lines "input.txt" |> go
