@@ -25,4 +25,4 @@ let go ls =
   Sequence.hd_exn opens |> printf "%d\n"
 
 
-let () = In_channel.read_lines "input.txt" |> go
+let () = In_channel.read_lines "input_b.txt" |> go
