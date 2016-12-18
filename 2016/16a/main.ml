@@ -28,9 +28,9 @@ let rec checksum cs =
 
 let () =
   let initial = String.to_list "11011110011011101" in
-  let l = 272 in
+  let l = 35651584 in
   let data = dragon_stream initial
       |> Sequence.drop_while ~f:(fun cs -> length cs < l)
       |> Sequence.hd_exn |> (fun cs -> take cs l) in
   let csum = checksum data in
-  printf "%s %s\n" (String.of_char_list csum) (String.of_char_list data)
+  printf "%s\n" (String.of_char_list csum)
