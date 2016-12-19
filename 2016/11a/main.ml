@@ -4,9 +4,9 @@ open Printf
 type thing = Microchip of string | Generator of string
 
 let example_setup = [
-  [Microchip "hydrogen"; Microchip "lithium"];
-  [Generator "hydrogen"];
-  [Generator "lithium"];
+  [Generator "polonium"; Generator "thulium"; Microchip "thulium"; Generator "promethium"; Generator "ruthenium"; Microchip "ruthenium"; Generator "cobalt"; Microchip "cobalt"];
+  [Microchip "polonium"; Microchip "promethium"];
+  [];
   []]
 
 let generators floor =
@@ -89,6 +89,7 @@ let are_we_there_yet (elevator, floors) =
 
 let rec walk n possible_floors =
   let open List in
+  printf "walked %d, width: %d" n (length possible_floors);
   if find possible_floors ~f:are_we_there_yet |> Option.is_some then n
   else
     possible_floors >>| steps |> concat |> walk (n+1)
