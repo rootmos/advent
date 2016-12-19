@@ -20,7 +20,7 @@ let hash elevator floors =
   let hash_thing = function
     | Generator s -> String.uppercase s
     | Microchip s -> s in
-  floors >>| (fun floor -> floor >>| hash_thing |> String.concat) |> String.concat ~sep:";" |> sprintf "%d%s" elevator
+  floors >>| (fun floor -> floor >>| hash_thing |> sort ~cmp:Pervasives.compare |> String.concat) |> String.concat ~sep:";" |> sprintf "%d%s" elevator
 
 let generators floor =
   let rec inner acc = function
@@ -100,12 +100,13 @@ let are_we_there_yet (elevator, floors) =
 
 let rec walk n visited possible_floors =
   let open List in
-  (*printf "walked %d, width: %d\n" n (length possible_floors);*)
+  printf "walked %d, width: %d, visited: %d\n" n (length possible_floors) (String.Set.length visited);
   if find possible_floors ~f:are_we_there_yet |> Option.is_some then n
   else
     let visited' = fold possible_floors ~init:visited ~f:(fun v (e, fs) -> String.Set.add v (hash e fs)) in
     let filter_previous = filter ~f:(fun (e, fs) -> not (String.Set.mem visited' (hash e fs))) in
-    let possible_floors' = possible_floors >>| steps |> concat |> filter_previous in
+    let deduplicate = dedup ~compare:(fun (e, fs) (e', fs') -> Pervasives.compare (hash e fs) (hash e' fs')) in
+    let possible_floors' = possible_floors >>| steps |> concat |> deduplicate |> filter_previous in
     walk (n+1) visited' possible_floors'
 
 let () =
