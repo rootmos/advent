@@ -10,16 +10,16 @@ let example_setup = [
   []]
 
 let setup = [
-  [Generator "polonium"; Generator "thulium"; Microchip "thulium"; Generator "promethium"; Generator "ruthenium"; Microchip "ruthenium"; Generator "cobalt"; Microchip "cobalt"];
-  [Microchip "polonium"; Microchip "promethium"];
+  [Generator "po"; Generator "th"; Microchip "th"; Generator "pr"; Generator "ru"; Microchip "ru"; Generator "co"; Microchip "co"];
+  [Microchip "po"; Microchip "pr"];
   [];
   []]
 
 let hash elevator floors =
   let open List in
   let hash_thing = function
-    | Generator s -> (String.prefix s 2 |> String.uppercase)
-    | Microchip s -> String.prefix s 2 in
+    | Generator s -> String.uppercase s
+    | Microchip s -> s in
   floors >>| (fun floor -> floor >>| hash_thing |> String.concat) |> String.concat ~sep:";" |> sprintf "%d%s" elevator
 
 let generators floor =
@@ -82,8 +82,6 @@ let surrounding_floors = function
   | 2 -> [1; 3]
   | 3 -> [2]
   | _ -> failwith "oh noes!"
-
-let all_floors_safe floors = List.for_all
 
 let steps (elevator, floors) =
   let open List in
