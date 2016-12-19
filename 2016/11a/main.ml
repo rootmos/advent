@@ -15,6 +15,12 @@ let setup = [
   [];
   []]
 
+let setup_b = [
+  [Generator "po"; Generator "th"; Microchip "th"; Generator "pr"; Generator "ru"; Microchip "ru"; Generator "co"; Microchip "co"; Generator "el"; Microchip "el"; Generator "di"; Microchip "di"];
+  [Microchip "po"; Microchip "pr"];
+  [];
+  []]
+
 let hash elevator floors =
   let open List in
   let hash_thing = function
@@ -111,5 +117,5 @@ let rec walk n visited possible_floors =
 
 let () =
   let open List in
-  walk 0 String.Set.empty [(0, setup)] |> printf "%d\n"
+  walk 0 String.Set.empty [(0, setup_b)] |> printf "%d\n"
 
