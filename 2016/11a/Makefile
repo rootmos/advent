@@ -1,4 +1,4 @@
-target=main.byte
+target=main.native
 src=main.ml
 
 .PHONY: run

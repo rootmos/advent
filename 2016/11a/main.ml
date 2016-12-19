@@ -4,10 +4,23 @@ open Printf
 type thing = Microchip of string | Generator of string
 
 let example_setup = [
+  [Microchip "hydrogen"; Microchip "lithium"];
+  [Generator "hydrogen"];
+  [Generator "lithium"];
+  []]
+
+let setup = [
   [Generator "polonium"; Generator "thulium"; Microchip "thulium"; Generator "promethium"; Generator "ruthenium"; Microchip "ruthenium"; Generator "cobalt"; Microchip "cobalt"];
   [Microchip "polonium"; Microchip "promethium"];
   [];
   []]
+
+let hash elevator floors =
+  let open List in
+  let hash_thing = function
+    | Generator s -> (String.prefix s 2 |> String.uppercase)
+    | Microchip s -> String.prefix s 2 in
+  floors >>| (fun floor -> floor >>| hash_thing |> String.concat) |> String.concat ~sep:";" |> sprintf "%d%s" elevator
 
 let generators floor =
   let rec inner acc = function
@@ -87,15 +100,17 @@ let are_we_there_yet (elevator, floors) =
     let is_empty i = nth_exn floors i |> length |> (=) 0 in
     is_empty 0 && is_empty 1 && is_empty 2
 
-let rec walk n possible_floors =
+let rec walk n visited possible_floors =
   let open List in
-  printf "walked %d, width: %d" n (length possible_floors);
+  (*printf "walked %d, width: %d\n" n (length possible_floors);*)
   if find possible_floors ~f:are_we_there_yet |> Option.is_some then n
   else
-    possible_floors >>| steps |> concat |> walk (n+1)
+    let visited' = fold possible_floors ~init:visited ~f:(fun v (e, fs) -> String.Set.add v (hash e fs)) in
+    let filter_previous = filter ~f:(fun (e, fs) -> not (String.Set.mem visited' (hash e fs))) in
+    let possible_floors' = possible_floors >>| steps |> concat |> filter_previous in
+    walk (n+1) visited' possible_floors'
 
 let () =
   let open List in
-  show_floors 0 example_setup;
-  walk 0 [(0, example_setup)] |> printf "%d\n"
+  walk 0 String.Set.empty [(0, setup)] |> printf "%d\n"
 
