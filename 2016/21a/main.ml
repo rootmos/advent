@@ -19,6 +19,7 @@ let first_ok xs =
     | _ -> None in
   filter_map ~f:is_ok xs |> hd
 
+
 let parse_ops l =
   let get_int m = Option.value_exn m |> Int.of_string in
   let get_char m = Option.value_exn m |> String.to_list |> List.hd_exn in
@@ -69,7 +70,7 @@ let parse_ops l =
 
   Option.value_exn (first_ok parses)
 
-let apply_op s = function
+let rec apply_op s = function
   | SwapPos (i, j) ->
       String.to_array s
         |> (fun cs -> Array.swap cs i j; cs)
@@ -90,8 +91,8 @@ let apply_op s = function
         |> Doubly_linked.to_list |> String.of_char_list
   | RotateRight n ->
       let rotate_right dl =
-        let hd = Option.value_exn (Doubly_linked.last_elt dl) in
-        Doubly_linked.move_to_front dl hd; dl in
+        let last = Option.value_exn (Doubly_linked.last_elt dl) in
+        Doubly_linked.move_to_front dl last; dl in
       let dl = String.to_list s |> Doubly_linked.of_list in
       Fn.apply_n_times ~n:n rotate_right dl
         |> Doubly_linked.to_list |> String.of_char_list
@@ -106,12 +107,33 @@ let apply_op s = function
       let center' = Array.of_list center |> (fun a -> Array.rev_inplace a; a) |> Array.to_list in
 
       List.concat [left; center'; right] |> String.of_char_list
+  | RotateBasedOn c ->
+      let cs = String.to_list s in
+      let i = (Option.value_exn (List.findi cs ~f:(fun _ c' -> c = c'))) |> fst in
+      let n = 1 + if i >= 4 then i + 1 else i in
+      apply_op s (RotateRight n)
+  | Move (i, j) when i < j ->
+      let cs = String.to_list s in
+      let c = List.nth_exn cs i in
+      let cs' = List.mapi cs ~f:(fun i' d ->
+        if i = i' then []
+        else if j = i' then [d; c]
+        else [d]) in
+      String.of_char_list (List.concat cs')
+  | Move (i, j) when i > j ->
+      let cs = String.to_list s in
+      let c = List.nth_exn cs i in
+      let cs' = List.mapi cs ~f:(fun i' d ->
+        if i = i' then []
+        else if j = i' then [c; d]
+        else [d]) in
+      String.of_char_list (List.concat cs')
   | _ -> s
 
 let go ls =
   let open List in
   let ops = ls >>| parse_ops in
-  fold ops ~init:"abcde" ~f:(fun s op ->
+  fold ops ~init:"abcdefgh" ~f:(fun s op ->
     let s' = apply_op s op in printf "%s -> %s\n" s s'; s') |> printf "%s\n"
 
-let () = In_channel.read_lines "simple.txt" |> go
+let () = In_channel.read_lines "input.txt" |> go
