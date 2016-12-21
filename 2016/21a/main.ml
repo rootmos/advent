@@ -70,11 +70,48 @@ let parse_ops l =
   Option.value_exn (first_ok parses)
 
 let apply_op s = function
+  | SwapPos (i, j) ->
+      String.to_array s
+        |> (fun cs -> Array.swap cs i j; cs)
+        |> Array.to_list
+        |> String.of_char_list
+  | SwapLetter (c, c') ->
+      let swapper = function
+        | d when d = c -> c'
+        | d when d = c' -> c
+        | d -> d in
+      String.map s ~f:swapper
+  | RotateLeft n ->
+      let rotate_left dl =
+        let hd = Option.value_exn (Doubly_linked.first_elt dl) in
+        Doubly_linked.move_to_back dl hd; dl in
+      let dl = String.to_list s |> Doubly_linked.of_list in
+      Fn.apply_n_times ~n:n rotate_left dl
+        |> Doubly_linked.to_list |> String.of_char_list
+  | RotateRight n ->
+      let rotate_right dl =
+        let hd = Option.value_exn (Doubly_linked.last_elt dl) in
+        Doubly_linked.move_to_front dl hd; dl in
+      let dl = String.to_list s |> Doubly_linked.of_list in
+      Fn.apply_n_times ~n:n rotate_right dl
+        |> Doubly_linked.to_list |> String.of_char_list
+  | ReverseRange (i, j) ->
+      let cs = String.to_list s in
+      let length = List.length cs in
+
+      let left = if i > 0 then List.slice cs 0 i else [] in
+      let center = List.slice cs i (j + 1) in
+      let right =  List.slice cs (j + 1) length in
+
+      let center' = Array.of_list center |> (fun a -> Array.rev_inplace a; a) |> Array.to_list in
+
+      List.concat [left; center'; right] |> String.of_char_list
   | _ -> s
 
 let go ls =
   let open List in
   let ops = ls >>| parse_ops in
-  fold ops ~init:"abcde" ~f:apply_op |> printf "%s\n"
+  fold ops ~init:"abcde" ~f:(fun s op ->
+    let s' = apply_op s op in printf "%s -> %s\n" s s'; s') |> printf "%s\n"
 
 let () = In_channel.read_lines "simple.txt" |> go
