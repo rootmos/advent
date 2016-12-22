@@ -23,9 +23,18 @@ let parse_disk l =
       used = get_int ms.(4)})
     |> ok_exn)
 
+let avail d = d.size - d.used
+
+let is_viable a b =
+  (a.x <> b.x || a.y <> b.y) &&
+  a.used > 0 && a.used <= avail b
+
 let go ls =
   let open List in
   let disks = drop ls 2 >>| parse_disk in
-  disks >>| show_disk >>| printf "%s\n" |> ignore
+  let no_viable = fold disks ~init:0 ~f:(fun s a ->
+    fold disks ~init:s ~f:(fun s' b ->
+      if is_viable a b then s' + 1 else s')) in
+  printf "viable pairs: %d\n" no_viable
 
 let () = In_channel.read_lines "input.txt" |> go
